@@ -1,4 +1,4 @@
-//매팽된 타입을 사용하여 값을 동기화하기
+//매핑된 타입을 사용하여 값을 동기화하기
 
 interface ScatterProps {
   xs: number[];
