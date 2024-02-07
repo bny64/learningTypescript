@@ -28,3 +28,28 @@ const namedPointSpread = { ...pt, ...id };
 const pt0 = {};
 const pt1 = { ...pt0, x: 3 };
 const ptv: Point = { ...pt1, y: 4 };
+
+//타입에 안전한 방식으로 조건부 속성을 추가하려면, 속성을 추가하지 않는 null 또는 {} 으로 객체 전개를 사용하면 된다.
+declare let hasMiddle: boolean;
+const firstLast = { first: "Harry", last: "Truman" };
+const president = { ...firstLast, ...(hasMiddle ? { middle: "S" } : {}) };
+
+declare let hasDates: boolean;
+const nameTitle = { name: "Khufu", title: "Pharaoh" };
+const pharaoh = {
+  ...nameTitle,
+  ...(hasDates ? { start: -222, end: -222 } : {}),
+};
+
+function addOptional<T extends object, U extends object>(
+  a: T,
+  b: U | null
+): T & Partial<U> {
+  return { ...a, ...b };
+}
+const pharaoh2 = addOptional(
+  nameTitle,
+  hasDates ? { start: -222, end: -222 } : {}
+);
+
+//객체에 속성을 추가하려면 spread 연산자로 추가하는게 좋다.
