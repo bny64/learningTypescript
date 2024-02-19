@@ -5,93 +5,127 @@
 
 let currentPage = "now";
 let newPage = "new";
+
 function getUrlForPage(page) {
-  return "";
+    return "";
 }
 
 interface State {
-  pageText: string;
-  isLoading: boolean;
-  error?: string;
+    pageText: string;
+    isLoading: boolean;
+    error?: string;
 }
 
 function renderPage(state: State) {
-  if (state.error) {
-    return `Error! Unable to load ${currentPage}: ${state.error}`;
-  } else if (state.isLoading) {
-    return `Loading ${currentPage}...`;
-  }
-  return `<h1>${currentPage}</h1>\n${state.pageText}`;
+    if (state.error) {
+        return `Error! Unable to load ${currentPage}: ${state.error}`;
+    } else if (state.isLoading) {
+        return `Loading ${currentPage}...`;
+    }
+    return `<h1>${currentPage}</h1>\n${state.pageText}`;
 }
+
 //위 코드에서 isLoading이 true이고 error 값이 존재하면 로딩 중인 상태인지 오류 상태인지 명확히 구분할 수 없다.
 
 async function changePage(state: State, newPage: string) {
-  state.isLoading = true;
-  try {
-    const response = await fetch(getUrlForPage(newPage));
-    if (!response.ok) {
-      throw new Error(`Unable to load ${newPage}: ${response.statusText}`);
+    state.isLoading = true;
+    try {
+        const response = await fetch(getUrlForPage(newPage));
+        if (!response.ok) {
+            throw new Error(`Unable to load ${newPage}: ${response.statusText}`);
+        }
+        const text = await response.text();
+        state.isLoading = false;
+        state.pageText = text;
+    } catch (e) {
+        state.error = "" + e;
     }
-    const text = await response.text();
-    state.isLoading = false;
-    state.pageText = text;
-  } catch (e) {
-    state.error = "" + e;
-  }
 }
+
 //상태 값의 두 가지 속성이 동시에 정보가 부족하거나(요청이 실패한 것인지, 여전히 로딩 중인지 알 수 없다.)
 //두 가지 속성이 충돌(오류이면서 동시에 로딩) 할 수 있다는 것이다.
 //State 타입은 isLoading이 true이면서 동시에 error 값이 설정되는 무효한 상태를 허용한다.
 //다음은 어플리케이션의 상태를 좀 더 제대로 표현한 방법이다.
 interface RequestPending {
-  state: "pending";
+    state: "pending";
 }
 
 interface RequestError {
-  state: "error";
-  error: string;
+    state: "error";
+    error: string;
 }
 
 interface RequestSuccess {
-  state: "ok";
-  pageText: string;
+    state: "ok";
+    pageText: string;
 }
 
 type RequestState = RequestPending | RequestError | RequestSuccess;
 
 interface State {
-  currentPage: string;
-  requests: { [page: string]: RequestState };
+    currentPage: string;
+    requests: { [page: string]: RequestState };
 }
 
 //네트워크 요청 과정 각각의 상태를 명시적으로 모델링하는 태그된 유니온을 사용했다.
 //코드가 길어지긴 했지만 무효한 상태를 허용하지 않도록 개선했다.
 //renderPage 함수도 개선할 수 있다.
 function renderPage2(state: State) {
-  const { currentPage } = state;
-  const requestState = state.requests[currentPage];
-  switch (requestState.state) {
-    case "pending":
-      return `Loading ${currentPage}...`;
-    case "error":
-      return `Error! Unable to load ${currentPage}: ${requestState.error}`;
-    case "ok":
-      return `<h1>${currentPage}</h1>\n${state.pageText}`;
-  }
+    const {currentPage} = state;
+    const requestState = state.requests[currentPage];
+    switch (requestState.state) {
+        case "pending":
+            return `Loading ${currentPage}...`;
+        case "error":
+            return `Error! Unable to load ${currentPage}: ${requestState.error}`;
+        case "ok":
+            return `<h1>${currentPage}</h1>\n${state.pageText}`;
+    }
 }
 
 //개선된 changePage 함수
 async function changePage2(state: State, newPage: string) {
-  state.requests[newPage] = { state: "pending" };
-  state.currentPage = newPage;
-  try {
-    const response = await fetch(getUrlForPage(newPage));
-    if (!response.ok) {
-      throw new Error(`Unable to load ${newPage}: ${response.statusText}`);
+    state.requests[newPage] = {state: "pending"};
+    state.currentPage = newPage;
+    try {
+        const response = await fetch(getUrlForPage(newPage));
+        if (!response.ok) {
+            throw new Error(`Unable to load ${newPage}: ${response.statusText}`);
+        }
+        const pageText = await response.text();
+        state.requests[newPage] = {state: "ok", pageText};
+    } catch (e) {
+        state.requests[newPage] = {state: "error", error: "" + e};
     }
-    const pageText = await response.text();
-    state.requests[newPage] = { state: "ok", pageText };
-  } catch (e) {
-    state.requests[newPage] = { state: "error", error: "" + e };
-  }
 }
+
+interface CockpitControls {
+    //왼쪽 사이드 스틱 각도, 0 = 중립, + = 앞으로
+    leftSideStick: number;
+    //왼쪽 사이드 스틱 각도, 0 = 중립, + = 앞으로
+    rightSideStick: number;
+}
+
+function getStickSetting(controls: CockpitControls) {
+    const {leftSideStick, rightSideStick} = controls;
+    if (leftSideStick === 0) {
+        return rightSideStick;
+    } else if (rightSideStick) {
+        return leftSideStick;
+    }
+    //??
+}
+
+//실제 사고난 에어버스 함수식
+function getStickSetting2(controls: CockpitControls) {
+    return (controls.leftSideStick + controls.rightSideStick) / 2;
+}
+//기장은 앞으로 밀고 부기장은 뒤로 밀어서 평균값에는 변화가 없어서 사고가 남.
+
+interface CockpitControls2 {
+    //스틱의 각도 0 = 중립, + = 앞으로
+    stickAngle: number;
+}
+
+//유효한 상태와 무효한 상태를 둘 다 표현하는 타입은 혼란을 초래한다.
+//유효한 상태만 표현하는 타입을 지향해야 한다. 코드가 길어지거나 표현하기 어렵지만 시간을 절약하고 고통을 줄일 수 있다.

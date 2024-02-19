@@ -10,6 +10,7 @@ const rows = rawRows.slice(1).map(rowStr =>
             (row[headers[i]] = val, row), {}));
 
 //서드파티 라이브러리를 사용하면 효율적으로 작성할 수 있다
+// @ts-ignore
 import _ from 'lodash';
 
 const rows2 = rawRows.slice(1).map(rowStr => _.zipObject(headers, rowStr.split(",")));
